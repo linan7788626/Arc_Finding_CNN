@@ -1,5 +1,6 @@
 import numpy as np
-import pylab as pl
+#import pylab as pl
+import pyfits
 #import scipy.ndimage.filters as snf
 #--------------------------------------------------------------------
 def make_r_coor(nc,dsx):
@@ -17,9 +18,9 @@ def make_c_coor(nc,dsx):
     return x1,x2
 
 #--------------------------------------------------------------------
-zl = 0.1
+zl = 0.2
 zs = 1.0
-sigmav = 220			#km/s
+sigmav = 320			#km/s
 q0 = 0.2
 rc0 = 0.1
 #--------------------------------------------------------------------
@@ -154,15 +155,16 @@ def pixel_trans(x1,x2,xx1,xx2,matrix,ntmp):
 #@profile
 def main():
     re = 1.0 # in units of arcsec
-    boxsize = 6.0*re # in the units of Einstein Radius
-    nnn = 1024
-    dsx = boxsize/nnn
+    nnn = 128
+    #dsx = boxsize/nnn
+    dsx = 0.05 # arcsec
+    boxsize = dsx*nnn # in the units of Einstein Radius
 
     xx01 = np.linspace(-boxsize/2.0,boxsize/2.0,nnn)+0.5*dsx
     xx02 = np.linspace(-boxsize/2.0,boxsize/2.0,nnn)+0.5*dsx
     xi2,xi1 = np.meshgrid(xx01,xx02)
     #----------------------------------------------------------------------
-    g_amp = 1.0   	# peak brightness value
+    g_amp = 4.0   	# peak brightness value
     g_sig = 0.02  	# Gaussian "sigma" (i.e., size)
     g_xcen = 0.03  	# x position of center (also try (0.0,0.14)
     g_ycen = 0.1  	# y position of center
@@ -211,98 +213,24 @@ def main():
     #pl.contourf(g_lensimage,levels)
     #pl.colorbar()
 
-    g_noise = np.random.normal(0,1,[nnn,nnn])*1.0
+    g_noise = np.random.normal(0,1,[nnn,nnn])*0.0
     g_lensimage = g_lensimage+g_noise
+
+    output_filename = "test.fits"
+    pyfits.writeto(output_filename,g_lensimage,clobber=True)
+
+
     #g_lensimage = g_lensimage+g_noise
 
     #smooth
     #g_lensimage = snf.uniform_filter(g_lensimage,size=4)
     #g_lensimage = snf.gaussian_filter(g_lensimage,1.0)
 
-    levels = [0.0,1.0,2.0,3.0,4.0,5.0,6.0]
-    pl.figure(figsize=(10,10))
-    pl.contourf(g_lensimage,levels)
-
-    #----------------------------------------------------------------------
-    nns = 16
-    #dss = nns*dsx
-
-    #x2 = 0.85
-    #x1 = 0.095
-
-    #xn1,xn2 = pixel_trans(x1,x2,xi1,xi2,g_lensimage,dss)
-
-    xp01 = np.linspace(-boxsize/2.0,boxsize/2.0,nnn/nns)+0.5*dsx*nns
-    xp02 = np.linspace(-boxsize/2.0,boxsize/2.0,nnn/nns)+0.5*dsx*nns
-    xp2,xp1 = np.meshgrid(xp01,xp02)
-
-    xp2 = xp2.reshape((nnn/nns*nnn/nns))
-    xp1 = xp1.reshape((nnn/nns*nnn/nns))
-
-    pl.figure(figsize=(10,10))
-    pl.xlim(-3,3)
-    pl.ylim(-3,3)
-    pl.plot(xp1,xp2,'ko')
-
-    xr2 = xp2*0.0
-    xr1 = xp1*0.0
-
-    for i in xrange(len(xp2)):
-        xr1[i],xr2[i] = pixel_trans(xp1[i],xp2[i],xi1,xi2,g_lensimage,nns)
-
-    X = np.vstack((xr1,xr2)).T
-
-    pl.figure(figsize=(10,10))
-    pl.xlim(-3,3)
-    pl.ylim(-3,3)
-    pl.plot(X[:, 0], X[:, 1], 'bo')
-
-    from sklearn.cluster import DBSCAN
-    #from sklearn.preprocessing import StandardScaler
-
-    colors = np.array([x for x in 'bgrcmykbgrcmykbgrcmykbgrcmyk'])
-    colors = np.hstack([colors] * 20)
-
-    #X = StandardScaler().fit_transform(X)
-
-    #dbscan = DBSCAN(eps=0.09375,min_samples=6)
-    dbscan = DBSCAN(eps=0.14,min_samples=6)
-
-    dbscan.fit(X)
-
-    y_pred = dbscan.labels_.astype(np.int)
-
-    pl.figure(figsize=(10,10))
-    pl.xlim(-3,3)
-    pl.ylim(-3,3)
-    pl.scatter(X[:, 0], X[:, 1], color=colors[y_pred].tolist(), s=22)
-
-    #xr1 = xr1 + np.random.normal(0,1,len(xr1))*1e-6
-    #xr2 = xr2 + np.random.normal(0,1,len(xr2))*1e-6
-
-    #xr3 = xr1*1.0
-    #posx1,posx2,sdens = call_sph_sdens(xr1,xr2,xr1,boxsize,256)
-
-
-
+    #levels = [0.0,1.0,2.0,3.0,4.0,5.0,6.0]
     #pl.figure(figsize=(10,10))
-    #pl.xlim(-3,3)
-    #pl.ylim(-3,3)
-    #pl.plot(xp1,xp2,'ko')
+    #pl.contourf(g_lensimage,levels)
 
-    #pl.figure()
-    #pl.contourf(posx1,posx2,sdens)
     #pl.show()
-
-    #pl.figure()
-    ##pl.contourf(xi2,xi1,g_lensimage)
-    #pl.plot(xp1,xp2,'ro')
-
-    #pl.figure()
-    ##pl.contourf(xi2,xi1,g_lensimage)
-    #pl.plot(xr1,xr2,'ko')
-
-    pl.show()
 
     return 0
 #------------------------------------------------------------------------------
