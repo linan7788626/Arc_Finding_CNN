@@ -1,7 +1,8 @@
 import numpy as np
-#import pylab as pl
+import pylab as pl
 import pyfits
 #import scipy.ndimage.filters as snf
+import scipy.signal as ss
 #--------------------------------------------------------------------
 def make_r_coor(nc,dsx):
 
@@ -17,12 +18,6 @@ def make_c_coor(nc,dsx):
     x1,x2 = np.mgrid[0:(bsz-dsx):nc*1j,0:(bsz-dsx):nc*1j]-bsz/2.0+dsx/2.0
     return x1,x2
 
-#--------------------------------------------------------------------
-zl = 0.2
-zs = 1.0
-sigmav = 320			#km/s
-q0 = 0.2
-rc0 = 0.1
 #--------------------------------------------------------------------
 def lens_equation_sie(x1,x2,lpar):
     xc1 = lpar[0]   #x coordinate of the center of lens (in units of Einstein radius).
@@ -92,69 +87,15 @@ def gauss_2d(x, y, par):
 	res0 = ((xnew**2)*par[4]+(ynew**2)/par[4])/np.abs(par[1])**2
 	res = par[0]*np.exp(-0.5*res0)
 	return res
-
-def pixel_trans(x1,x2,xx1,xx2,matrix,ntmp):
-
-    ntmp = ntmp*1.0
-    dr = 1000
-    nnx,nny = np.shape(matrix)
-    dsx = xx1[1,1]-xx1[0,0]
-    bsz = nnx*dsx
-
-    buf = np.zeros((2.0*ntmp,2.0*ntmp))
-    buf_x1 = np.zeros((2.0*ntmp,2.0*ntmp))
-    buf_x2 = np.zeros((2.0*ntmp,2.0*ntmp))
-
-    kk = 0
-
-    while (dr >dsx) :
-        i = int((x2+bsz*0.5)/dsx)
-        j = int((x1+bsz*0.5)/dsx)
-
-        idx1 = i-ntmp;sidx1 = 0
-        idx2 = i+ntmp;sidx2 = 2*ntmp
-
-        idy1 = j-ntmp;sidy1 = 0
-        idy2 = j+ntmp;sidy2 = 2*ntmp
-
-        if ((idx1<0)|(idx2>=nnx)|(idy1<0)|(idy2>=nny)):
-            break
-
-        buf[sidx1:sidx2,sidy1:sidy2] = matrix[idx1:idx2,idy1:idy2]
-        buf_x1[sidx1:sidx2,sidy1:sidy2] = xx1[idx1:idx2,idy1:idy2]
-        buf_x2[sidx1:sidx2,sidy1:sidy2] = xx2[idx1:idx2,idy1:idy2]
-        buf_tot = np.sum(buf)
-        buf_bar = buf_tot/(4.0*ntmp*ntmp)
-
-        buf_nrm = buf-buf_bar
-
-        buf_nrm[buf_nrm <=0] = 0
-        buf_nrm_tot = np.sum(buf_nrm)
-
-        if buf_nrm_tot == 0.0 :
-            break
-
-        xc2 = np.sum(buf_nrm*buf_x1)/buf_nrm_tot
-        xc1 = np.sum(buf_nrm*buf_x2)/buf_nrm_tot
-
-        dx1 = x1-xc1
-        dx2 = x2-xc2
-
-        dr = np.sqrt(dx1*dx1+dx2*dx2)
-        x1 = xc1
-        x2 = xc2
-
-        kk = kk+1
-
-        if kk > 100 :
-                break
-
-    return x1,x2
-
+#def re_sv(sv,z1,z2):
+	#res = 4.0*np.pi*(sv**2.0/vc**2.0)*Da2(z1,z2)/Da(z2)*apr
+	#return res
 #--------------------------------------------------------------------
-#@profile
 def main():
-    re = 1.0 # in units of arcsec
+    #zl = 0.2
+    #zs = 1.0
+    #sigmav = 320			#km/s
+
     nnn = 128
     #dsx = boxsize/nnn
     dsx = 0.05 # arcsec
@@ -164,7 +105,7 @@ def main():
     xx02 = np.linspace(-boxsize/2.0,boxsize/2.0,nnn)+0.5*dsx
     xi2,xi1 = np.meshgrid(xx01,xx02)
     #----------------------------------------------------------------------
-    g_amp = 4.0   	# peak brightness value
+    g_amp = 100.0   	# peak brightness value
     g_sig = 0.02  	# Gaussian "sigma" (i.e., size)
     g_xcen = 0.03  	# x position of center (also try (0.0,0.14)
     g_ycen = 0.1  	# y position of center
@@ -190,47 +131,48 @@ def main():
 
 
     gpar = np.asarray([g_amp,g_sig,g_xcen,g_ycen,g_axrat,g_pa])
-    g_lensimage = gauss_2d(yi1,yi2,gpar)
+    g_limage = gauss_2d(yi1,yi2,gpar)
     #g_lensimage = gauss_2d(xi1,xi2,gpar)
 
     #----------------------------------------------------------------------
-    g_amp = 5.0   	# peak brightness value
-    g_sig = 0.5  	# Gaussian "sigma" (i.e., size)
-    g_xcen = 0.0  	# x position of center (also try (0.0,0.14)
-    g_ycen = 0.0  	# y position of center
-    g_axrat = 0.7 	# minor-to-major axis ratio
-    g_pa = 45.0    	# major-axis position angle (degrees) c.c.w. from x axis
+    g_amp = 5.0*re   	# peak brightness value
+    g_sig = 0.5*re  	# Gaussian "sigma" (i.e., size)
+    g_xcen = xc1  	# x position of center (also try (0.0,0.14)
+    g_ycen = xc2  	# y position of center
+    g_axrat = q 	# minor-to-major axis ratio
+    g_pa = pha    	# major-axis position angle (degrees) c.c.w. from x axis
     gpar = np.asarray([g_amp,g_sig,g_xcen,g_ycen,g_axrat,g_pa])
     #----------------------------------------------------------------------
-    g_source = gauss_2d(xi1,xi2,gpar) # modeling source as 2d Gaussian with input parameters.
+    #g_simage = gauss_2d(xi1,xi2,gpar) # modeling source as 2d Gaussian with input parameters.
 
-    #add noise
-    #g_noise = np.random.random_sample([nnn,nnn])
+    file_psf = "../PSF_and_noise/sdsspsf.fits"
+    g_psf = pyfits.getdata(file_psf)-1000.0
+    g_psf = g_psf/np.sum(g_psf)
 
-    g_lensimage = g_lensimage+g_source
-    #levels = [0.0,1.0,1.2,1.4,1.6,1.8,2.0,3.0,4.0,5.0,6.0]
-    #pl.figure()
-    #pl.contourf(g_lensimage,levels)
-    #pl.colorbar()
-
-    g_noise = np.random.normal(0,1,[nnn,nnn])*0.0
-    g_lensimage = g_lensimage+g_noise
-
-    output_filename = "test.fits"
-    pyfits.writeto(output_filename,g_lensimage,clobber=True)
+    pl.figure()
+    pl.contourf(g_limage)
+    pl.colorbar()
 
 
-    #g_lensimage = g_lensimage+g_noise
+    file_noise = "../PSF_and_noise/sdssgal.fits"
+    g_noise = pyfits.getdata(file_noise)-1000.0
 
-    #smooth
-    #g_lensimage = snf.uniform_filter(g_lensimage,size=4)
-    #g_lensimage = snf.gaussian_filter(g_lensimage,1.0)
+    pl.figure()
+    pl.contourf(g_noise)
+    pl.colorbar()
 
-    #levels = [0.0,1.0,2.0,3.0,4.0,5.0,6.0]
-    #pl.figure(figsize=(10,10))
-    #pl.contourf(g_lensimage,levels)
+    g_limage = ss.fftconvolve(g_limage,g_psf,mode="same")
 
-    #pl.show()
+    pl.figure()
+    pl.contourf(g_limage)
+    pl.colorbar()
+
+    g_limage[5:-4,5:-4] = g_limage[5:-4,5:-4]+g_noise
+
+    output_filename = "../output_fits/test.fits"
+    pyfits.writeto(output_filename,g_limage,clobber=True)
+
+    pl.show()
 
     return 0
 #------------------------------------------------------------------------------
