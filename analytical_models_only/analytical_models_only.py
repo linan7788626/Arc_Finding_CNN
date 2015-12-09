@@ -99,6 +99,14 @@ def de_vaucouleurs_2d(x,y,par):
     res = par[0]*np.exp(-par[1]*res0**0.25)
     return res
 
+def noise_models(nx1,nx2,par):
+    # a nx1*nx2 matrix
+    return 0
+
+def psf_models(nx1,nx2,par):
+    # a nx1*nx2 matrix
+    return 0
+
 #--------------------------------------------------------------------
 def main():
     #zl = 0.2
