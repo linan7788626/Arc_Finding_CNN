@@ -78,23 +78,32 @@ def lens_equation_sie(x1,x2,lpar):
     return res1,res2,mu
 #--------------------------------------------------------------------
 def xy_rotate(x, y, xcen, ycen, phi):
-	phirad = np.deg2rad(phi)
-	xnew = (x-xcen)*np.cos(phirad)+(y-ycen)*np.sin(phirad)
-	ynew = (y-ycen)*np.cos(phirad)-(x-xcen)*np.sin(phirad)
-	return (xnew,ynew)
+    phirad = np.deg2rad(phi)
+    xnew = (x-xcen)*np.cos(phirad)+(y-ycen)*np.sin(phirad)
+    ynew = (y-ycen)*np.cos(phirad)-(x-xcen)*np.sin(phirad)
+    return (xnew,ynew)
+
 def gauss_2d(x, y, par):
-	(xnew,ynew) = xy_rotate(x, y, par[2], par[3], par[5])
-	res0 = ((xnew**2)*par[4]+(ynew**2)/par[4])/np.abs(par[1])**2
-	res = par[0]*np.exp(-0.5*res0)
-	return res
+    #[I0, Re, xc1,xc2,q,pha]
+    (xnew,ynew) = xy_rotate(x, y, par[2], par[3], par[5])
+    res0 = np.sqrt(((xnew**2)*par[4]+(ynew**2)/par[4]))/np.abs(par[1])
+    res = par[0]*np.exp(-7.67*(res0**0.25-1.0))
+    return res
 #def re_sv(sv,z1,z2):
-	#res = 4.0*np.pi*(sv**2.0/vc**2.0)*Da2(z1,z2)/Da(z2)*apr
-	#return res
+    #res = 4.0*np.pi*(sv**2.0/vc**2.0)*Da2(z1,z2)/Da(z2)*apr
+    #return res
+
+def de_vaucouleurs_2d(x,y,par):
+    (xnew,ynew) = xy_rotate(x, y, par[2], par[3], par[5])
+    res0 = ((xnew**2)*par[4]+(ynew**2)/par[4])
+    res = par[0]*np.exp(-par[1]*res0**0.25)
+    return res
+
 #--------------------------------------------------------------------
 def main():
     #zl = 0.2
     #zs = 1.0
-    #sigmav = 320			#km/s
+    #sigmav = 320           #km/s
 
     nnn = 128
     #dsx = boxsize/nnn
@@ -105,12 +114,12 @@ def main():
     xx02 = np.linspace(-boxsize/2.0,boxsize/2.0,nnn)+0.5*dsx
     xi2,xi1 = np.meshgrid(xx01,xx02)
     #----------------------------------------------------------------------
-    g_amp = 100.0   	# peak brightness value
-    g_sig = 0.02  	# Gaussian "sigma" (i.e., size)
-    g_xcen = 0.03  	# x position of center (also try (0.0,0.14)
-    g_ycen = 0.1  	# y position of center
-    g_axrat = 1.0 	# minor-to-major axis ratio
-    g_pa = 0.0    	# major-axis position angle (degrees) c.c.w. from x axis
+    g_amp = 100.0       # peak brightness value
+    g_sig = 0.02    # Gaussian "sigma" (i.e., size)
+    g_xcen = 0.03   # x position of center (also try (0.0,0.14)
+    g_ycen = 0.1    # y position of center
+    g_axrat = 1.0   # minor-to-major axis ratio
+    g_pa = 0.0      # major-axis position angle (degrees) c.c.w. from x axis
     gpar = np.asarray([g_amp,g_sig,g_xcen,g_ycen,g_axrat,g_pa])
     #----------------------------------------------------------------------
     #g_source = 0.0*xi1
@@ -135,12 +144,12 @@ def main():
     #g_lensimage = gauss_2d(xi1,xi2,gpar)
 
     #----------------------------------------------------------------------
-    g_amp = 5.0*re   	# peak brightness value
-    g_sig = 0.5*re  	# Gaussian "sigma" (i.e., size)
-    g_xcen = xc1  	# x position of center (also try (0.0,0.14)
-    g_ycen = xc2  	# y position of center
-    g_axrat = q 	# minor-to-major axis ratio
-    g_pa = pha    	# major-axis position angle (degrees) c.c.w. from x axis
+    g_amp = 5.0*re      # peak brightness value
+    g_sig = 0.5*re      # Gaussian "sigma" (i.e., size)
+    g_xcen = xc1    # x position of center (also try (0.0,0.14)
+    g_ycen = xc2    # y position of center
+    g_axrat = q     # minor-to-major axis ratio
+    g_pa = pha      # major-axis position angle (degrees) c.c.w. from x axis
     gpar = np.asarray([g_amp,g_sig,g_xcen,g_ycen,g_axrat,g_pa])
     #----------------------------------------------------------------------
     #g_simage = gauss_2d(xi1,xi2,gpar) # modeling source as 2d Gaussian with input parameters.
