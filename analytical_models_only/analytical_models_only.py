@@ -3,6 +3,7 @@ import pylab as pl
 import pyfits
 #import scipy.ndimage.filters as snf
 import scipy.signal as ss
+import mycosmology as mm
 #--------------------------------------------------------------------
 def make_r_coor(nc,dsx):
 
@@ -89,9 +90,9 @@ def gauss_2d(x, y, par):
     res0 = np.sqrt(((xnew**2)*par[4]+(ynew**2)/par[4]))/np.abs(par[1])
     res = par[0]*np.exp(-7.67*(res0**0.25-1.0))
     return res
-#def re_sv(sv,z1,z2):
-    #res = 4.0*np.pi*(sv**2.0/vc**2.0)*Da2(z1,z2)/Da(z2)*apr
-    #return res
+def re_sv(sv,z1,z2):
+    res = 4.0*np.pi*(sv**2.0/mm.vc**2.0)*mm.Da2(z1,z2)/mm.Da(z2)*mm.apr
+    return res
 
 def de_vaucouleurs_2d(x,y,par):
     (xnew,ynew) = xy_rotate(x, y, par[2], par[3], par[5])
@@ -99,9 +100,11 @@ def de_vaucouleurs_2d(x,y,par):
     res = par[0]*np.exp(-par[1]*res0**0.25)
     return res
 
-def noise_models(nx1,nx2,par):
+def noise_models(nx1,nx2,nvar):
     # a nx1*nx2 matrix
-    return 0
+    nstd = np.sqrt(nvar)
+    res=np.random.poisson(nstd,(nx1,nx2))-nstd
+    return res
 
 def psf_models(nx1,nx2,par):
     # a nx1*nx2 matrix
@@ -109,9 +112,9 @@ def psf_models(nx1,nx2,par):
 
 #--------------------------------------------------------------------
 def main():
-    #zl = 0.2
-    #zs = 1.0
-    #sigmav = 320           #km/s
+    zl = 0.2
+    zs = 1.0
+    sv = 220           #km/s
 
     nnn = 128
     #dsx = boxsize/nnn
@@ -122,7 +125,7 @@ def main():
     xx02 = np.linspace(-boxsize/2.0,boxsize/2.0,nnn)+0.5*dsx
     xi2,xi1 = np.meshgrid(xx01,xx02)
     #----------------------------------------------------------------------
-    g_amp = 100.0       # peak brightness value
+    g_amp = 10.0       # peak brightness value
     g_sig = 0.02    # Gaussian "sigma" (i.e., size)
     g_xcen = 0.03   # x position of center (also try (0.0,0.14)
     g_ycen = 0.1    # y position of center
@@ -137,7 +140,7 @@ def main():
     xc2 = 0.0       #y coordinate of the center of lens (in units of Einstein radius).
     q   = 0.7       #Ellipticity of lens.
     rc  = 0.1       #Core size of lens (in units of Einstein radius).
-    re  = 1.0       #Einstein radius of lens.
+    re  = re_sv(sv,zl,zs)       #Einstein radius of lens.
     pha = 45.0      #Orintation of lens.
     lpar = np.asarray([xc1,xc2,q,rc,re,pha])
     #----------------------------------------------------------------------
@@ -145,49 +148,48 @@ def main():
     yi1 = xi1-ai1
     yi2 = xi2-ai2
     #----------------------------------------------------------------------
-
-
     gpar = np.asarray([g_amp,g_sig,g_xcen,g_ycen,g_axrat,g_pa])
     g_limage = gauss_2d(yi1,yi2,gpar)
-    #g_lensimage = gauss_2d(xi1,xi2,gpar)
-
     #----------------------------------------------------------------------
-    g_amp = 5.0*re      # peak brightness value
-    g_sig = 0.5*re      # Gaussian "sigma" (i.e., size)
+    g_I0 = 5.0*sv/sv      # peak brightness value
+    g_Re = 0.5*re      # Gaussian "sigma" (i.e., size)
     g_xcen = xc1    # x position of center (also try (0.0,0.14)
     g_ycen = xc2    # y position of center
     g_axrat = q     # minor-to-major axis ratio
     g_pa = pha      # major-axis position angle (degrees) c.c.w. from x axis
-    gpar = np.asarray([g_amp,g_sig,g_xcen,g_ycen,g_axrat,g_pa])
+    vpar = np.asarray([g_amp,g_sig,g_xcen,g_ycen,g_axrat,g_pa])
     #----------------------------------------------------------------------
-    #g_simage = gauss_2d(xi1,xi2,gpar) # modeling source as 2d Gaussian with input parameters.
+    g_gimage = de_vaucouleurs_2d(x,y,par)
 
     file_psf = "../PSF_and_noise/sdsspsf.fits"
     g_psf = pyfits.getdata(file_psf)-1000.0
     g_psf = g_psf/np.sum(g_psf)
 
-    pl.figure()
-    pl.contourf(g_limage)
-    pl.colorbar()
+    #pl.figure()
+    #pl.contourf(g_limage)
+    #pl.colorbar()
 
 
-    file_noise = "../PSF_and_noise/sdssgal.fits"
-    g_noise = pyfits.getdata(file_noise)-1000.0
-
-    pl.figure()
-    pl.contourf(g_noise)
-    pl.colorbar()
+    #file_noise = "../PSF_and_noise/sdssgal.fits"
+    #g_noise = pyfits.getdata(file_noise)-1000.0
 
     g_limage = ss.fftconvolve(g_limage,g_psf,mode="same")
 
-    pl.figure()
-    pl.contourf(g_limage)
-    pl.colorbar()
+    #pl.figure()
+    #pl.contourf(g_limage)
+    #pl.colorbar()
+    g_noise = noise_models(nnn,nnn,58.75)
+    #pl.figure()
+    #pl.contourf(g_noise)
+    #pl.colorbar()
 
-    g_limage[5:-4,5:-4] = g_limage[5:-4,5:-4]+g_noise
+    g_limage = g_limage+g_noise
 
     output_filename = "../output_fits/test.fits"
     pyfits.writeto(output_filename,g_limage,clobber=True)
+    pl.figure()
+    pl.contourf(g_limage)
+    pl.colorbar()
 
     pl.show()
 
