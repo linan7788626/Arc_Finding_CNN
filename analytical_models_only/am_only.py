@@ -115,9 +115,9 @@ def main():
     xi2,xi1 = np.meshgrid(xx01,xx02)
     #----------------------------------------------------------------------
     g_amp = 100.0       # peak brightness value
-    g_sig = 0.02    # Gaussian "sigma" (i.e., size)
-    g_xcen = 0.03   # x position of center (also try (0.0,0.14)
-    g_ycen = 0.1    # y position of center
+    g_sig = 0.2    # Gaussian "sigma" (i.e., size)
+    g_xcen = 0.0   # x position of center (also try (0.0,0.14)
+    g_ycen = 0.0    # y position of center
     g_axrat = 1.0   # minor-to-major axis ratio
     g_pa = 0.0      # major-axis position angle (degrees) c.c.w. from x axis
     gpar = np.asarray([g_amp,g_sig,g_xcen,g_ycen,g_axrat,g_pa])
@@ -137,6 +137,13 @@ def main():
     yi1 = xi1-ai1
     yi2 = xi2-ai2
     #----------------------------------------------------------------------
+    pl.figure()
+    pl.contourf(ai1)
+    pl.colorbar()
+
+    pl.figure()
+    pl.contourf(ai2)
+    pl.colorbar()
 
 
     gpar = np.asarray([g_amp,g_sig,g_xcen,g_ycen,g_axrat,g_pa])
@@ -158,23 +165,23 @@ def main():
     g_psf = pyfits.getdata(file_psf)-1000.0
     g_psf = g_psf/np.sum(g_psf)
 
-    pl.figure()
-    pl.contourf(g_limage)
-    pl.colorbar()
+    #pl.figure()
+    #pl.contourf(g_limage)
+    #pl.colorbar()
 
 
     file_noise = "../PSF_and_noise/sdssgal.fits"
     g_noise = pyfits.getdata(file_noise)-1000.0
 
-    pl.figure()
-    pl.contourf(g_noise)
-    pl.colorbar()
+    #pl.figure()
+    #pl.contourf(g_noise)
+    #pl.colorbar()
 
     g_limage = ss.fftconvolve(g_limage,g_psf,mode="same")
 
-    pl.figure()
-    pl.contourf(g_limage)
-    pl.colorbar()
+    #pl.figure()
+    #pl.contourf(g_limage)
+    #pl.colorbar()
 
     g_limage[5:-4,5:-4] = g_limage[5:-4,5:-4]+g_noise
 
