@@ -3,6 +3,8 @@ import pylab as pl
 import pyfits
 #import scipy.ndimage.filters as snf
 import scipy.signal as ss
+#import congrid
+import rebin_array_2d
 #--------------------------------------------------------------------
 def make_r_coor(nc,dsx):
 
@@ -84,16 +86,17 @@ def xy_rotate(x, y, xcen, ycen, phi):
     return (xnew,ynew)
 
 def gauss_2d(x, y, par):
-    #[I0, Re, xc1,xc2,q,pha]
     (xnew,ynew) = xy_rotate(x, y, par[2], par[3], par[5])
     res0 = np.sqrt(((xnew**2)*par[4]+(ynew**2)/par[4]))/np.abs(par[1])
-    res = par[0]*np.exp(-7.67*(res0**0.25-1.0))
+    res = par[0]*np.exp(-res0**2.0)
     return res
 #def re_sv(sv,z1,z2):
     #res = 4.0*np.pi*(sv**2.0/vc**2.0)*Da2(z1,z2)/Da(z2)*apr
     #return res
 
 def de_vaucouleurs_2d(x,y,par):
+    #[I0, Re, xc1,xc2,q,pha]
+    #res = par[0]*np.exp(-7.67*(res0**0.25-1.0))
     (xnew,ynew) = xy_rotate(x, y, par[2], par[3], par[5])
     res0 = ((xnew**2)*par[4]+(ynew**2)/par[4])
     res = par[0]*np.exp(-par[1]*res0**0.25)
@@ -105,19 +108,23 @@ def main():
     #zs = 1.0
     #sigmav = 320           #km/s
 
-    nnn = 128
-    #dsx = boxsize/nnn
-    dsx = 0.05 # arcsec
-    boxsize = dsx*nnn # in the units of Einstein Radius
+    #nnn = 128
+    ##dsx = boxsize/nnn
+    #dsx = 0.05 # arcsec
+    #boxsize = dsx*nnn # in the units of Einstein Radius
 
-    xx01 = np.linspace(-boxsize/2.0,boxsize/2.0,nnn)+0.5*dsx
-    xx02 = np.linspace(-boxsize/2.0,boxsize/2.0,nnn)+0.5*dsx
+    bsz = 6.4 # in the units of Einstein Radius
+    nnn = 1024
+    dsx = bsz/nnn
+
+    xx01 = np.linspace(-bsz/2.0,bsz/2.0,nnn)+0.5*dsx
+    xx02 = np.linspace(-bsz/2.0,bsz/2.0,nnn)+0.5*dsx
     xi2,xi1 = np.meshgrid(xx01,xx02)
     #----------------------------------------------------------------------
-    g_amp = 100.0       # peak brightness value
-    g_sig = 0.2    # Gaussian "sigma" (i.e., size)
-    g_xcen = 0.0   # x position of center (also try (0.0,0.14)
-    g_ycen = 0.0    # y position of center
+    g_amp = 10.0       # peak brightness value
+    g_sig = 0.01    # Gaussian "sigma" (i.e., size)
+    g_xcen = 0.06   # x position of center (also try (0.0,0.14)
+    g_ycen = 0.11    # y position of center
     g_axrat = 1.0   # minor-to-major axis ratio
     g_pa = 0.0      # major-axis position angle (degrees) c.c.w. from x axis
     gpar = np.asarray([g_amp,g_sig,g_xcen,g_ycen,g_axrat,g_pa])
@@ -128,7 +135,7 @@ def main():
     xc1 = 0.0       #x coordinate of the center of lens (in units of Einstein radius).
     xc2 = 0.0       #y coordinate of the center of lens (in units of Einstein radius).
     q   = 0.7       #Ellipticity of lens.
-    rc  = 0.1       #Core size of lens (in units of Einstein radius).
+    rc  = 0.0       #Core size of lens (in units of Einstein radius).
     re  = 1.0       #Einstein radius of lens.
     pha = 45.0      #Orintation of lens.
     lpar = np.asarray([xc1,xc2,q,rc,re,pha])
@@ -137,17 +144,30 @@ def main():
     yi1 = xi1-ai1
     yi2 = xi2-ai2
     #----------------------------------------------------------------------
-    pl.figure()
-    pl.contourf(ai1)
-    pl.colorbar()
+    #pl.figure()
+    #pl.contourf(ai1)
+    #pl.colorbar()
 
-    pl.figure()
-    pl.contourf(ai2)
-    pl.colorbar()
+    #pl.figure()
+    #pl.contourf(ai2)
+    #pl.colorbar()
 
 
     gpar = np.asarray([g_amp,g_sig,g_xcen,g_ycen,g_axrat,g_pa])
     g_limage = gauss_2d(yi1,yi2,gpar)
+
+    #print np.sum(g_limage)
+    #pl.figure()
+    #pl.contourf(g_limage)
+    #pl.colorbar()
+
+    g_limage = rebin_array_2d.rebin(g_limage,[128,128])
+
+    #print np.sum(g_limage)
+    #pl.figure()
+    #pl.contourf(g_limage)
+    #pl.colorbar()
+
     #g_lensimage = gauss_2d(xi1,xi2,gpar)
 
     #----------------------------------------------------------------------
