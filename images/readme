@@ -1,0 +1,19 @@
+lens_galaxy.py is a simple code
+to simulate an image of elliptical
+galaxy from SDSS survey.
+
+The input paramters are:
+1, R_eff,     the desired effective radius in arcsec
+2, VelDis,    velocity dispersion of the dark matter halo
+3, NoiseVar,  variance of the noise in terms of count^2.
+4, NoiseType, Gaussian or Poisson
+5, zl,        redshift of the lens
+6, E,         ellipticity of the lens
+7, Phi,       Orientation of the lens wrt the North
+
+$./lens_galaxy.py --NoiseType Gaussian --E 0.3 --Phi 45 --R_eff 5 --zl 0.35 --VelDis 300
+will give you a postage-stamp of 128x128 galaxy with de Vaucouleurs profile determined
+by the parameters you set.
+
+By Wentao Luo Dec. 18 2015
+at CMU
