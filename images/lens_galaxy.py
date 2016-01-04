@@ -1,13 +1,13 @@
 #!/home/wtluo/anaconda/bin/python2.7
 
-import pyfits as pf 
+import pyfits as pf
 import numpy as np
 from optparse import OptionParser
 from astropy.cosmology import Planck13
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 
-import galsim as gs
+#import galsim as gs
 
 nMgyCount_r=0.004760406   # nanomaggies per count for SDSS detector.
 pixsize    =0.396         # pixel size of SDSS detector.
@@ -21,33 +21,33 @@ def Brightness(Re,Vd):
 	b       =0.2
 	c       =-8.778
 	mag_e   =((np.log10(Re)-a*np.log10(Vd)-c)/b)+20.09 # Bernardi et al 2003
-	nanoMgy =Mgy2nanoMgy*10.0**(-(mag_e-22.5)/2.5)		
-		
+	nanoMgy =Mgy2nanoMgy*10.0**(-(mag_e-22.5)/2.5)
+
 	counts  =nanoMgy/nMgyCount_r
-	
+
 	return counts
 #----de Vaucouleurs profile-------------------------
 def deVaucouleurs(R,Re,Vd,e,phi,Npix):
 	count   =Brightness(R,Vd)
 	x,y     =np.mgrid[:Npix,:Npix]
 	Rpix    =R/pixsize
-	theta   =phi*np.pi/180.	
+	theta   =phi*np.pi/180.
 	xc      =int(Npix/2)
 	yc      =int(Npix/2)
-			
+
 	xx      =x-xc
 	yy      =y-yc
 	rx      =xx*np.cos(theta)+yy*np.sin(theta)
 	ry      =-xx*np.sin(theta)+yy*np.cos(theta)
 	rr      =np.sqrt(rx*rx/(1.0-e)+ry*ry*(1.0-e))
-	image   =count*np.exp(-7.669*((rr/Rpix)**0.25-1.0))	
-	soften  =count*np.exp(-7.669*((0.02)**0.25-1.0))	
+	image   =count*np.exp(-7.669*((rr/Rpix)**0.25-1.0))
+	soften  =count*np.exp(-7.669*((0.02)**0.25-1.0))
 	ix      =np.where(image>=soften)
 	image[ix]=soften
 
 
 	return image
-	
+
 #----End of all funcs-----------------------
 
 parser=OptionParser()
@@ -89,6 +89,10 @@ dA      =Planck13.comoving_distance(zl).value*1000./(1+zl)
 Re      =dA*np.sin(R*np.pi/180./3600.)
 print Re
 imgal   =deVaucouleurs(R,Re,Vd,e,phi,Npix)
+
+plt.figure()
+plt.contourf(imgal)
+plt.colorbar()
 
 skycount=sky_r/(nMgyCount_r)
 if o.NoiseType=='Poisson':

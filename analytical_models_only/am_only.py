@@ -3,8 +3,25 @@ import pylab as pl
 import pyfits
 #import scipy.ndimage.filters as snf
 import scipy.signal as ss
+import mycosmology as mm
 #import congrid
-import rebin_array_2d
+#import rebin_array_2d
+from astropy.cosmology import Planck13
+
+
+nMgyCount_r=0.004760406   # nanomaggies per count for SDSS detector.
+sky_r      =5.98          # SDSS typical r band sky
+softbias   =1000.0        # SDSS softbias
+Mgy2nanoMgy=10e+9         # nanoMaggy to Maggy
+skycount=sky_r/(nMgyCount_r)
+
+
+def noise_map(nx1,nx2,nstd,NoiseType):
+    if NoiseType=='Poisson':
+    	noise=np.random.poisson(nstd,(nx1,nx2))-nstd
+    if NoiseType=='Gaussian':
+    	noise=nstd*np.random.normal(0.0,1.0,(nx1,nx2))
+    return noise
 #--------------------------------------------------------------------
 def make_r_coor(nc,dsx):
 
@@ -90,39 +107,64 @@ def gauss_2d(x, y, par):
     res0 = np.sqrt(((xnew**2)*par[4]+(ynew**2)/par[4]))/np.abs(par[1])
     res = par[0]*np.exp(-res0**2.0)
     return res
-#def re_sv(sv,z1,z2):
-    #res = 4.0*np.pi*(sv**2.0/vc**2.0)*Da2(z1,z2)/Da(z2)*apr
-    #return res
+
+def re_sv(sv,z1,z2):
+    res = 4.0*np.pi*(sv**2.0/mm.vc**2.0)*mm.Da2(z1,z2)/mm.Da(z2)*mm.apr
+    return res
+
+#----Fundamental Plain------------------------------
+def Brightness(Re,Vd):
+    a       =1.49
+    b       =0.2
+    c       =-8.778
+    mag_e   =((np.log10(Re)-a*np.log10(Vd)-c)/b)+20.09 # Bernardi et al 2003
+    nanoMgy =Mgy2nanoMgy*10.0**(-(mag_e-22.5)/2.5)
+    counts  =nanoMgy/nMgyCount_r
+    return counts
 
 def de_vaucouleurs_2d(x,y,par):
     #[I0, Re, xc1,xc2,q,pha]
-    #res = par[0]*np.exp(-7.67*(res0**0.25-1.0))
     (xnew,ynew) = xy_rotate(x, y, par[2], par[3], par[5])
-    res0 = ((xnew**2)*par[4]+(ynew**2)/par[4])
-    res = par[0]*np.exp(-par[1]*res0**0.25)
+    res0 = np.sqrt((xnew**2)*par[4]+(ynew**2)/par[4])/par[1]
+    #res = par[0]*np.exp(-par[1]*res0**0.25)
+    res = par[0]*np.exp(-7.669*(res0**0.25-1.0))
     return res
 
+##----de Vaucouleurs profile-------------------------
+#def deVaucouleurs(x,y,xc,yc,counts,R,e,phi):
+    #theta   =phi*np.pi/180.
+
+    #xx      =x-xc
+    #yy      =y-yc
+    #rx      =xx*np.cos(theta)+yy*np.sin(theta)
+    #ry      =-xx*np.sin(theta)+yy*np.cos(theta)
+    #rr      =np.sqrt(rx*rx/(1.0-e)+ry*ry*(1.0-e))
+    #image   =counts*np.exp(-7.669*((rr/R)**0.25-1.0))
+    #soften  =counts*np.exp(-7.669*((0.02)**0.25-1.0))
+    #ix      =np.where(image>=soften)
+    #image[ix]=soften
+
+
+    #return image
 #--------------------------------------------------------------------
 def main():
-    #zl = 0.2
-    #zs = 1.0
-    #sigmav = 320           #km/s
 
-    #nnn = 128
-    ##dsx = boxsize/nnn
-    #dsx = 0.05 # arcsec
-    #boxsize = dsx*nnn # in the units of Einstein Radius
-
-    bsz = 6.4 # in the units of Einstein Radius
-    nnn = 1024
-    dsx = bsz/nnn
+    #dsx     = 0.396         # pixel size of SDSS detector.
+    dsx = 0.05         # pixel size of SDSS detector.
+    R  = 2.9918     #vd is velocity dispersion.
+    zl = 0.2     #zl is the redshift of the lens galaxy.
+    zs = 1.0
+    vd = 220    #Velocity Dispersion.
+    nnn = 128      #Image dimension
+    bsz = dsx*nnn
+    nstd = 59
 
     xx01 = np.linspace(-bsz/2.0,bsz/2.0,nnn)+0.5*dsx
     xx02 = np.linspace(-bsz/2.0,bsz/2.0,nnn)+0.5*dsx
     xi2,xi1 = np.meshgrid(xx01,xx02)
     #----------------------------------------------------------------------
     g_amp = 10.0       # peak brightness value
-    g_sig = 0.01    # Gaussian "sigma" (i.e., size)
+    g_sig = 0.02    # Gaussian "sigma" (i.e., size)
     g_xcen = 0.06   # x position of center (also try (0.0,0.14)
     g_ycen = 0.11    # y position of center
     g_axrat = 1.0   # minor-to-major axis ratio
@@ -136,7 +178,7 @@ def main():
     xc2 = 0.0       #y coordinate of the center of lens (in units of Einstein radius).
     q   = 0.7       #Ellipticity of lens.
     rc  = 0.0       #Core size of lens (in units of Einstein radius).
-    re  = 1.0       #Einstein radius of lens.
+    re  = re_sv(vd,zl,zs)       #Einstein radius of lens.
     pha = 45.0      #Orintation of lens.
     lpar = np.asarray([xc1,xc2,q,rc,re,pha])
     #----------------------------------------------------------------------
@@ -144,15 +186,6 @@ def main():
     yi1 = xi1-ai1
     yi2 = xi2-ai2
     #----------------------------------------------------------------------
-    #pl.figure()
-    #pl.contourf(ai1)
-    #pl.colorbar()
-
-    #pl.figure()
-    #pl.contourf(ai2)
-    #pl.colorbar()
-
-
     gpar = np.asarray([g_amp,g_sig,g_xcen,g_ycen,g_axrat,g_pa])
     g_limage = gauss_2d(yi1,yi2,gpar)
 
@@ -161,49 +194,30 @@ def main():
     #pl.contourf(g_limage)
     #pl.colorbar()
 
-    g_limage = rebin_array_2d.rebin(g_limage,[128,128])
+    #g_limage = rebin_array_2d.rebin(g_limage,[128,128])
+    #-------------------------------------------------------------
+    dA = Planck13.comoving_distance(zl).value*1000./(1+zl)
+    Re = dA*np.sin(R*np.pi/180./3600.)
+    counts  =Brightness(R,vd)
+    vpar = np.asarray([counts,Re,xc1,xc2,q,pha])
+    #g_lens = deVaucouleurs(xi1,xi2,xc1,xc2,counts,R,1.0-q,pha)
+    g_lens = de_vaucouleurs_2d(xi1,xi2,vpar)
 
-    #print np.sum(g_limage)
-    #pl.figure()
-    #pl.contourf(g_limage)
-    #pl.colorbar()
-
-    #g_lensimage = gauss_2d(xi1,xi2,gpar)
-
-    #----------------------------------------------------------------------
-    g_amp = 5.0*re      # peak brightness value
-    g_sig = 0.5*re      # Gaussian "sigma" (i.e., size)
-    g_xcen = xc1    # x position of center (also try (0.0,0.14)
-    g_ycen = xc2    # y position of center
-    g_axrat = q     # minor-to-major axis ratio
-    g_pa = pha      # major-axis position angle (degrees) c.c.w. from x axis
-    gpar = np.asarray([g_amp,g_sig,g_xcen,g_ycen,g_axrat,g_pa])
-    #----------------------------------------------------------------------
-    #g_simage = gauss_2d(xi1,xi2,gpar) # modeling source as 2d Gaussian with input parameters.
+    g_lens = g_lens/1e4
 
     file_psf = "../PSF_and_noise/sdsspsf.fits"
     g_psf = pyfits.getdata(file_psf)-1000.0
     g_psf = g_psf/np.sum(g_psf)
+    g_limage = ss.fftconvolve(g_limage+g_lens,g_psf,mode="same")
 
-    #pl.figure()
-    #pl.contourf(g_limage)
-    #pl.colorbar()
+    g_noise = noise_map(nnn,nnn,nstd,"Gaussian")
 
 
-    file_noise = "../PSF_and_noise/sdssgal.fits"
-    g_noise = pyfits.getdata(file_noise)-1000.0
+    g_limage = g_limage+(g_noise+skycount)/200.0
 
-    #pl.figure()
-    #pl.contourf(g_noise)
-    #pl.colorbar()
-
-    g_limage = ss.fftconvolve(g_limage,g_psf,mode="same")
-
-    #pl.figure()
-    #pl.contourf(g_limage)
-    #pl.colorbar()
-
-    g_limage[5:-4,5:-4] = g_limage[5:-4,5:-4]+g_noise
+    pl.figure()
+    pl.contourf(g_limage)
+    pl.colorbar()
 
     output_filename = "../output_fits/test.fits"
     pyfits.writeto(output_filename,g_limage,clobber=True)
