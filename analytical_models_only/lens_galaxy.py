@@ -48,7 +48,7 @@ def deVaucouleurs(R,Re,Vd,e,phi,Npix,dsx):
 	return image
 if __name__ == '__main__':
     dsx     = 0.396         # pixel size of SDSS detector.
-    R       = 2.9918     #vd is velocity dispersion.
+    R       = 2.9918     #distribution of R (arcsec) is needed.
     zl      = 0.5     #zl is the redshift of the lens galaxy.
     Vd      = 320    #Velocity Dispersion.
     Npix    = 128      #Image dimension
@@ -58,7 +58,7 @@ if __name__ == '__main__':
     #nstd    = np.sqrt(o.NoiseVar)
 
     dA      = Planck13.comoving_distance(zl).value*1000./(1+zl)
-    Re      = dA*np.sin(R*np.pi/180./3600.)
+    Re      = dA*np.sin(R*np.pi/180./3600.) #Mpc
     imgal   = deVaucouleurs(R,Re,Vd,e,phi,Npix,dsx)
 
     plt.figure()
