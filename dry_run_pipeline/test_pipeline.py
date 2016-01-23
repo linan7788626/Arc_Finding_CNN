@@ -8,7 +8,15 @@ from astropy.cosmology import Planck13
 import pylab as pl
 import scipy.interpolate as sci
 
-def mags_to_ncounts(input_array):
+def mags_to_ncounts(input_array,zeropoint):
+    res = input_array
+    return res
+
+def ncounts_to_flux(input_array):
+    res = input_array
+    return res
+
+def mag_to_flux(input_array,zeropoint):
     res = input_array
     return res
 
@@ -181,6 +189,7 @@ def de_vaucouleurs_2d(x,y,par):
     #return image
 #--------------------------------------------------------------------
 def main():
+    zeropoint = 18
 
     dsx_sdss     = 0.396         # pixel size of SDSS detector.
 
@@ -218,10 +227,11 @@ def main():
     yi2 = xi2-ai2
 
     g_limage = lv4.call_ray_tracing(g_source,yi1,yi2,ysc1,ysc2,dsi)
+    g_limage = mag_to_flux(g_limage,zeropoint)
 
-    pl.figure()
-    pl.contourf(xi1,xi2,g_limage)
-    pl.colorbar()
+    #pl.figure()
+    #pl.contourf(xi1,xi2,g_limage)
+    #pl.colorbar()
     #-------------------------------------------------------------
     # Need to be Caliborate the mags
     dA = Planck13.comoving_distance(zl).value*1000./(1+zl)
@@ -231,7 +241,7 @@ def main():
     #g_lens = deVaucouleurs(xi1,xi2,xc1,xc2,counts,R,1.0-q,pha)
     g_lens = de_vaucouleurs_2d(xi1,xi2,vpar)
 
-    g_lens = g_lens/8.8e5
+    g_lens = ncounts_to_flux(g_lens,zeropoint)
     print np.max(g_lens)
 
     #-------------------------------------------------------------
@@ -241,18 +251,9 @@ def main():
     new_shape=[0,0]
     new_shape[0]=np.shape(g_psf)[0]*dsx_sdss/dsx
     new_shape[1]=np.shape(g_psf)[1]*dsx_sdss/dsx
-
-    pl.figure()
-    pl.contourf(g_psf)
-    pl.colorbar()
-
     g_psf = rebin_psf(g_psf,new_shape)
     print(np.max(g_psf))
     g_limage = ss.fftconvolve(g_limage+g_lens,g_psf,mode="same")
-
-    pl.figure()
-    pl.contourf(g_psf)
-    pl.colorbar()
 
     pl.figure()
     pl.contourf(xi1,xi2,g_limage)
@@ -260,7 +261,8 @@ def main():
     #-------------------------------------------------------------
     # Need to be Caliborate the mags
     g_noise = noise_map(nnn,nnn,nstd,"Gaussian")
-    g_limage = g_limage+(g_noise+skycount)/4000.0
+    g_noise = ncounts_to_flux(g_noise+skycount,zeropoint)
+    g_limage = g_limage+g_noise
 
     pl.figure()
     pl.contourf(xi1,xi2,g_limage)
