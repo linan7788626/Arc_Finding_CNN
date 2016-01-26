@@ -7,6 +7,7 @@ import astropy.io.fits as pyfits
 from astropy.cosmology import Planck13
 import pylab as pl
 import scipy.interpolate as sci
+import pixcos2pixsdss as p2p
 
 def mags_to_ncounts(input_array,zeropoint):
     res = input_array
@@ -212,6 +213,7 @@ def main():
     dsi = 0.03
     g_source = pyfits.getdata("./439.0_149.482739_1.889989_processed.fits")
     g_source = np.array(g_source,dtype="<d")
+    g_source = p2p.pixcos2pixsdss(g_source)
     #----------------------------------------------------------------------
     xc1 = 0.0       #x coordinate of the center of lens (in units of Einstein radius).
     xc2 = 0.0       #y coordinate of the center of lens (in units of Einstein radius).
