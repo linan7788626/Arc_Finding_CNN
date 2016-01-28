@@ -189,16 +189,16 @@ def de_vaucouleurs_2d(x,y,par):
 
     #return image
 #--------------------------------------------------------------------
-def main():
+def single_run_test(ind,ysc1,ysc2,q,vd,pha,zl,zs):
     zeropoint = 18
 
     dsx_sdss     = 0.396         # pixel size of SDSS detector.
 
 
     R  = 2.9918     #vd is velocity dispersion.
-    zl = 0.2     #zl is the redshift of the lens galaxy.
-    zs = 1.0
-    vd = 520    #Velocity Dispersion.
+    #zl = 0.2     #zl is the redshift of the lens galaxy.
+    #zs = 1.0
+    #vd = 520    #Velocity Dispersion.
     nnn = 512      #Image dimension
     bsz = 30.0 # arcsecs
     dsx = bsz/nnn         # pixel size of SDSS detector.
@@ -208,8 +208,8 @@ def main():
     xx02 = np.linspace(-bsz/2.0,bsz/2.0,nnn)+0.5*dsx
     xi2,xi1 = np.meshgrid(xx01,xx02)
     #----------------------------------------------------------------------
-    ysc1 = 0.2
-    ysc2 = 0.5
+    #ysc1 = 0.2
+    #ysc2 = 0.5
     dsi = 0.03
     g_source = pyfits.getdata("./439.0_149.482739_1.889989_processed.fits")
     g_source = np.array(g_source,dtype="<d")
@@ -217,10 +217,10 @@ def main():
     #----------------------------------------------------------------------
     xc1 = 0.0       #x coordinate of the center of lens (in units of Einstein radius).
     xc2 = 0.0       #y coordinate of the center of lens (in units of Einstein radius).
-    q   = 0.7       #Ellipticity of lens.
+    #q   = 0.7       #Ellipticity of lens.
     rc  = 0.0       #Core size of lens (in units of Einstein radius).
     re  = re_sv(vd,zl,zs)       #Einstein radius of lens.
-    pha = 45.0      #Orintation of lens.
+    #pha = 45.0      #Orintation of lens.
     lpar = np.asarray([xc1,xc2,q,rc,re,pha])
     #----------------------------------------------------------------------
     ai1,ai2,mua = lens_equation_sie(xi1,xi2,lpar)
@@ -244,8 +244,6 @@ def main():
     g_lens = de_vaucouleurs_2d(xi1,xi2,vpar)
 
     g_lens = ncounts_to_flux(g_lens,zeropoint)
-    print np.max(g_lens)
-
     #-------------------------------------------------------------
     file_psf = "../PSF_and_noise/sdsspsf.fits"
     g_psf = pyfits.getdata(file_psf)-1000.0
@@ -257,21 +255,21 @@ def main():
     print(np.max(g_psf))
     g_limage = ss.fftconvolve(g_limage+g_lens,g_psf,mode="same")
 
-    pl.figure()
-    pl.contourf(xi1,xi2,g_limage)
-    pl.colorbar()
+    #pl.figure()
+    #pl.contourf(xi1,xi2,g_limage)
+    #pl.colorbar()
     #-------------------------------------------------------------
     # Need to be Caliborate the mags
     g_noise = noise_map(nnn,nnn,nstd,"Gaussian")
     g_noise = ncounts_to_flux(g_noise+skycount,zeropoint)
     g_limage = g_limage+g_noise
 
-    pl.figure()
-    pl.contourf(xi1,xi2,g_limage)
-    pl.colorbar()
+    #pl.figure()
+    #pl.contourf(xi1,xi2,g_limage)
+    #pl.colorbar()
     #-------------------------------------------------------------
 
-    output_filename = "../output_fits/test.fits"
+    output_filename = "../output_fits/"+str(ind)+".fits"
     pyfits.writeto(output_filename,g_limage,clobber=True)
 
     pl.show()
@@ -279,5 +277,22 @@ def main():
     return 0
 
 if __name__ == '__main__':
-    main()
+    from mpi4py import MPI
+    import sys
+    sourcpos = 10.0 # arcsecs
+    num_imgs = int(sys.argv[1])
 
+    comm = MPI.COMM_WORLD
+    size = comm.Get_size()
+    rank = comm.Get_rank()
+
+    ysc1 = np.random.random(num_imgs)*sourcpos-sourcpos/2.0
+    ysc2 = np.random.random(num_imgs)*sourcpos-sourcpos/2.0
+    q = np.random.random(num_imgs)*0.5+0.5
+    vd = np.random.random(num_imgs)*100.0+200.0
+    pha = np.random.random(num_imgs)*360.0
+    zl = 0.2
+    zs = 1.0
+
+    for i in xrange(rank,num_imgs,size):
+        single_run_test(i,ysc1[i],ysc2[i],q[i],vd[i],pha[i],zl,zs)
