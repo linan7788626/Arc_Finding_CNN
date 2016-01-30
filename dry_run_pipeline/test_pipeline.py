@@ -8,12 +8,13 @@ from astropy.cosmology import Planck13
 import pylab as pl
 import scipy.interpolate as sci
 import pixcos2pixsdss as p2p
+import congrid
 
 def mags_to_ncounts(input_array,zeropoint):
     res = input_array
     return res
 
-def ncounts_to_flux(input_array):
+def ncounts_to_flux(input_array,zeropoint):
     res = input_array
     return res
 
@@ -243,7 +244,7 @@ def single_run_test(ind,ysc1,ysc2,q,vd,pha,zl,zs):
     #g_lens = deVaucouleurs(xi1,xi2,xc1,xc2,counts,R,1.0-q,pha)
     g_lens = de_vaucouleurs_2d(xi1,xi2,vpar)
 
-    g_lens = ncounts_to_flux(g_lens,zeropoint)
+    g_lens = ncounts_to_flux(g_lens*1e-5,zeropoint)
     #-------------------------------------------------------------
     file_psf = "../PSF_and_noise/sdsspsf.fits"
     g_psf = pyfits.getdata(file_psf)-1000.0
@@ -261,12 +262,17 @@ def single_run_test(ind,ysc1,ysc2,q,vd,pha,zl,zs):
     #-------------------------------------------------------------
     # Need to be Caliborate the mags
     g_noise = noise_map(nnn,nnn,nstd,"Gaussian")
-    g_noise = ncounts_to_flux(g_noise+skycount,zeropoint)
+    g_noise = ncounts_to_flux(g_noise*5e-2+skycount,zeropoint)
     g_limage = g_limage+g_noise
 
-    #pl.figure()
+    print np.shape(g_limage)
+    g_limage = congrid.congrid(g_limage,[128,128])
+    g_limage = g_limage-np.min(g_limage)
+
+    pl.figure()
     #pl.contourf(xi1,xi2,g_limage)
-    #pl.colorbar()
+    pl.contourf(g_limage)
+    pl.colorbar()
     #-------------------------------------------------------------
 
     output_filename = "../output_fits/"+str(ind)+".fits"
@@ -277,22 +283,36 @@ def single_run_test(ind,ysc1,ysc2,q,vd,pha,zl,zs):
     return 0
 
 if __name__ == '__main__':
-    from mpi4py import MPI
-    import sys
-    sourcpos = 10.0 # arcsecs
-    num_imgs = int(sys.argv[1])
+    #from mpi4py import MPI
+    #import sys
+    #sourcpos = 10.0 # arcsecs
+    #num_imgs = int(sys.argv[1])
+    num_imgs = 1
+    sourcpos = 0.0
 
-    comm = MPI.COMM_WORLD
-    size = comm.Get_size()
-    rank = comm.Get_rank()
+    #comm = MPI.COMM_WORLD
+    #size = comm.Get_size()
+    #rank = comm.Get_rank()
 
-    ysc1 = np.random.random(num_imgs)*sourcpos-sourcpos/2.0
-    ysc2 = np.random.random(num_imgs)*sourcpos-sourcpos/2.0
-    q = np.random.random(num_imgs)*0.5+0.5
-    vd = np.random.random(num_imgs)*100.0+200.0
-    pha = np.random.random(num_imgs)*360.0
-    zl = 0.2
+    #ysc1 = np.random.random(num_imgs)*sourcpos-sourcpos/2.0
+    #ysc2 = np.random.random(num_imgs)*sourcpos-sourcpos/2.0
+    #q = np.random.random(num_imgs)*0.5+0.5
+    #vd = np.random.random(num_imgs)*100.0+200.0
+    #pha = np.random.random(num_imgs)*360.0
+    #zl = 0.2
+    #zs = 1.0
+
+    ysc1 = [0.2]
+    ysc2 = [0.5]
+    zl = 0.2     #zl is the redshift of the lens galaxy.
     zs = 1.0
+    vd = [520]    #Velocity Dispersion.
+    q  = [0.9999999999999]
+    pha = [0.0]
 
-    for i in xrange(rank,num_imgs,size):
+
+    #for i in xrange(rank,num_imgs,size):
+    #for i in xrange(rank,num_imgs,size):
+    for i in xrange(num_imgs):
+        i = 0
         single_run_test(i,ysc1[i],ysc2[i],q[i],vd[i],pha[i],zl,zs)
