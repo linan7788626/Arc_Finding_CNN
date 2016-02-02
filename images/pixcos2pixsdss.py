@@ -25,4 +25,9 @@ def ccd2mag(image):
 
 	return im_mag
 	
-
+def mag2ccd(image):
+	factor= 10.0**(0.4*(aa+kk*airmass))
+	ff0   = 10.0**(image/(-2.5))
+	im_ccd= (ff0/factor)*expsdss/gain
+	
+	return im_ccd	
