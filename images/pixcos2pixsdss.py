@@ -14,21 +14,42 @@ aa_cos  =-25.523
 kk      =0.156347
 airmass =1.201824
 
+#Convert CCD value of cosmos in cps to counts in SDSS CCD.
 def pixcos2pixsdss(image):
 	image=image*expsdss/gain	
 	
 	return image*10**(aa_sdss-aa_cos)
 
-def ccd2mag(image):
-	factor= 10.0**(0.4*(aa+kk*airmass))
+#Convert CCD value in counts(SDSS) to Pogson magnitude.
+def sdssccd2mag(image):
+	factor= 10.0**(0.4*(aa_sdss+kk*airmass))
 	ff0   = (image*gain/expsdss)*factor
 	im_mag= -2.5*np.log10(factor*(image*gain/expsdss))
 
 	return im_mag
-	
-def mag2ccd(image):
-	factor= 10.0**(0.4*(aa+kk*airmass))
+#Convert Pogson magnitude to CCD value(SDSS)	
+def mag2sdssccd(image):
+	factor= 10.0**(0.4*(aa_sdss+kk*airmass))
 	ff0   = 10.0**(image/(-2.5))
 	im_ccd= (ff0/factor)*expsdss/gain
 	
 	return im_ccd	
+
+#convert CCD value in cps(count per second with gain=1) to Pogson magnitude
+#, but given the SDSS zeropoint so that we calculate the magnitude should be
+# SDSS-like.
+def cosccd2mag(image):
+	factor=10.0**(0.4*(aa_sdss+kk*airmass))
+	ff0   =image*factor      # gain=1 and its alreay count per second.
+	im_mag=-2.5*np.log10(ff0)
+
+	return im_mag
+
+#conver Pogson magnitude to cosmos CCD value
+def mag2cosccd(image):
+	factor=10.0**(0.4*(aa_sdss+kk*airmass))
+	ff0   =10.0**(image/(-2.5))
+	im_ccd=ff0/factor
+
+	return im_ccd
+	
