@@ -27,14 +27,13 @@ def Brightness(Re,Vd):
 	b       =0.2
 	c       =-8.778
 	mag_e   =((np.log10(Re)-a*np.log10(Vd)-c)/b)+20.09 # Bernardi et al 2003
-	#nanoMgy =Mgy2nanoMgy*10.0**(-(mag_e-22.5)/2.5)		
-		
-	counts  =10.0**(-((mag_e-22.5)/2.5))*expsdss/factor/gain
-	print mag_e,counts
+	nanoMgy =Mgy2nanoMgy*10.0**(-(mag_e-22.5)/2.5)		
+	counts  =nanoMgy/nMgyCount_r	
+
 	return counts
 #----de Vaucouleurs profile-------------------------
 def deVaucouleurs(R,Re,Vd,e,phi,Npix):
-	count   =Brightness(R,Vd)
+	count   =Brightness(Re,Vd)
 	x,y     =np.mgrid[:Npix,:Npix]
 	Rpix    =R/pixsize
 	theta   =phi*np.pi/180.	
@@ -107,8 +106,8 @@ if o.NoiseType=='Gaussian':
 
 
 import matplotlib.pyplot as plt
-plt.imshow((imgal+noise),interpolation='Nearest',cmap=cm.gray)
-#plt.imshow((imgal),interpolation='Nearest',cmap=cm.gray)
+#plt.imshow((imgal+noise),interpolation='Nearest',cmap=cm.gray)
+plt.imshow((imgal),interpolation='Nearest',cmap=cm.gray)
 plt.colorbar()
 plt.title('VD=300,Reff=3')
 plt.show()
