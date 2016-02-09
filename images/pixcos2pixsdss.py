@@ -8,7 +8,7 @@ import numpy as np
 # is just ACS pixel value \time 53/gain. Here gain is the parameter for SDSS
 # CCD relating electrons to DN(Data Number from CCD).
 gain    =4.7
-expsdss =53.0
+expsdss =53.9
 aa_sdss =-24.149
 aa_cos  =25.523
 kk      =0.156347
@@ -24,9 +24,7 @@ def pixcos2pixsdss(image):
 	return im_mag
 #Convert ST magnitude to CCD value(SDSS)	
 def mag2sdssccd(image):
-	factor= 10.0**(0.4*(aa_sdss+kk*airmass))
-	frat  = 10.0**(image/(-2.5))
-	im_ccd= (frat/factor)*expsdss/gain
+	im_ccd= gain*expsdss*(10.0**((image+aa_sdss)/(-2.5)))
 	
 	return im_ccd	
 #Convert ACS ccd value to ST magnitude
