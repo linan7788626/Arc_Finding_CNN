@@ -14,6 +14,12 @@ pixsize    =0.396         # pixel size of SDSS detector.
 sky_r      =5.98          # SDSS typical r band sky
 softbias   =1000.0        # SDSS softbias
 Mgy2nanoMgy=10e+9         # nanoMaggy to Maggy
+aa_r       =-24.149       # SDSS r band zeropoint
+kk         =0.156347
+airmass    =1.201824
+expsdss    =53.9
+gain       =4.7
+factor     =10.0**(0.4*(aa_r+kk*airmass))
 
 #----Fundamental Plain------------------------------
 def Brightness(Re,Vd):
@@ -21,10 +27,10 @@ def Brightness(Re,Vd):
 	b       =0.2
 	c       =-8.778
 	mag_e   =((np.log10(Re)-a*np.log10(Vd)-c)/b)+20.09 # Bernardi et al 2003
-	nanoMgy =Mgy2nanoMgy*10.0**(-(mag_e-22.5)/2.5)		
+	#nanoMgy =Mgy2nanoMgy*10.0**(-(mag_e-22.5)/2.5)		
 		
-	counts  =nanoMgy/nMgyCount_r
-	
+	counts  =10.0**(-((mag_e-22.5)/2.5))*expsdss/factor/gain
+	print mag_e,counts
 	return counts
 #----de Vaucouleurs profile-------------------------
 def deVaucouleurs(R,Re,Vd,e,phi,Npix):
@@ -41,9 +47,10 @@ def deVaucouleurs(R,Re,Vd,e,phi,Npix):
 	ry      =-xx*np.sin(theta)+yy*np.cos(theta)
 	rr      =np.sqrt(rx*rx/(1.0-e)+ry*ry*(1.0-e))
 	image   =count*np.exp(-7.669*((rr/Rpix)**0.25-1.0))	
-	soften  =count*np.exp(-7.669*((0.02)**0.25-1.0))	
+	soften  =count*np.exp(-7.669*((0.2)**0.25-1.0))	
 	ix      =np.where(image>=soften)
 	image[ix]=soften
+	#image[ix]=3000
 
 
 	return image
@@ -57,19 +64,19 @@ parser.add_option("--R_eff",dest="R_eff",default=2.9918,
 parser.add_option("--zlens",dest="zlens",default=0.298,
 		    help="the redshift of galaxy",metavar="value",
 		    type="float")
-parser.add_option("--VelDis",dest="VelDis",default=300.0,
+parser.add_option("--VelDis",dest="VelDis",default=200.0,
 		    help="Velocity Dispersion ",metavar="value",
 		    type="float")
 parser.add_option("--Npix",dest="Npix",default=128,
 		    help="Number of Pixels for one dimension ",metavar="value",
 		    type="float")
-parser.add_option("--E",dest="E",default=0.0,
+parser.add_option("--E",dest="E",default=0.5,
 		    help="Ellipticity of galaxy ",metavar="value",
 		    type="float")
-parser.add_option("--Phi",dest="Phi",default=0,
+parser.add_option("--Phi",dest="Phi",default=45,
 		    help="Orientation of galaxy wrt North",metavar="value",
 		    type="float")
-parser.add_option("--NoiseVar",dest="NoiseVar",default=0.0,
+parser.add_option("--NoiseVar",dest="NoiseVar",default=58.0,
                     help="Noise variance",metavar="value",
                     type="float")
 parser.add_option("--NoiseType",dest="NoiseType",default="Gaussian",
@@ -100,8 +107,9 @@ if o.NoiseType=='Gaussian':
 
 
 import matplotlib.pyplot as plt
-plt.imshow((imgal+noise+skycount+softbias),interpolation='Nearest',cmap=cm.gray)
+plt.imshow((imgal+noise),interpolation='Nearest',cmap=cm.gray)
+#plt.imshow((imgal),interpolation='Nearest',cmap=cm.gray)
 plt.colorbar()
-plt.title('R_eff=10')
+plt.title('VD=300,Reff=3')
 plt.show()
 
