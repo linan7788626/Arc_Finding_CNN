@@ -10,18 +10,6 @@ import scipy.interpolate as sci
 import pixcos2pixsdss as p2p
 import congrid
 
-def mags_to_ncounts(input_array,zeropoint):
-    res = input_array
-    return res
-
-def ncounts_to_flux(input_array,zeropoint):
-    res = input_array
-    return res
-
-def mag_to_flux(input_array,zeropoint):
-    res = input_array
-    return res
-
 def rebin_psf(input_psf,new_shape):
     nxo,nyo = np.shape(input_psf)
     nxn,nyn = new_shape
@@ -38,8 +26,8 @@ def rebin_psf(input_psf,new_shape):
     yn = np.linspace(0,nyo-1.0,nyn)+0.5
     xn,yn = np.meshgrid(xn,yn)
 
-    print np.max(xo),np.min(xo)
-    print np.max(xn),np.min(xn)
+    #print np.max(xo),np.min(xo)
+    #print np.max(xn),np.min(xn)
 
     res = sci.griddata(np.array([xo,yo]).T, zo, (xn, yn), method='linear')
     return res
@@ -161,16 +149,24 @@ def Brightness(Re,Vd):
     b       =0.2
     c       =-8.778
     mag_e   =((np.log10(Re)-a*np.log10(Vd)-c)/b)+20.09 # Bernardi et al 2003
+
     nanoMgy =Mgy2nanoMgy*10.0**(-(mag_e-22.5)/2.5)
     counts  =nanoMgy/nMgyCount_r
+
+    print "counts",counts
+    print "Re",Re
     return counts
 
 def de_vaucouleurs_2d(x,y,par):
     #[I0, Re, xc1,xc2,q,pha]
+    #print "I0",par[0]
+    #print "Re",par[1]
     (xnew,ynew) = xy_rotate(x, y, par[2], par[3], par[5])
     res0 = np.sqrt((xnew**2)*par[4]+(ynew**2)/par[4])/par[1]
     #res = par[0]*np.exp(-par[1]*res0**0.25)
     res = par[0]*np.exp(-7.669*(res0**0.25-1.0))
+    soften  =par[0]*np.exp(-7.669*((0.4)**0.25-1.0))
+    res[res>soften]=soften
     return res
 
 ##----de Vaucouleurs profile-------------------------
@@ -191,19 +187,15 @@ def de_vaucouleurs_2d(x,y,par):
     #return image
 #--------------------------------------------------------------------
 def single_run_test(ind,ysc1,ysc2,q,vd,pha,zl,zs):
-    zeropoint = 18
-
     dsx_sdss     = 0.396         # pixel size of SDSS detector.
-
-
-    R  = 2.9918     #vd is velocity dispersion.
+    R  = 3.0000     #
     #zl = 0.2     #zl is the redshift of the lens galaxy.
     #zs = 1.0
     #vd = 520    #Velocity Dispersion.
     nnn = 512      #Image dimension
     bsz = 30.0 # arcsecs
     dsx = bsz/nnn         # pixel size of SDSS detector.
-    nstd = 59
+    nstd = 59 #^2
 
     xx01 = np.linspace(-bsz/2.0,bsz/2.0,nnn)+0.5*dsx
     xx02 = np.linspace(-bsz/2.0,bsz/2.0,nnn)+0.5*dsx
@@ -214,7 +206,18 @@ def single_run_test(ind,ysc1,ysc2,q,vd,pha,zl,zs):
     dsi = 0.03
     g_source = pyfits.getdata("./439.0_149.482739_1.889989_processed.fits")
     g_source = np.array(g_source,dtype="<d")
-    g_source = p2p.pixcos2pixsdss(g_source)
+    g_source[g_source<=0.0001] = 1e-6
+    #print np.sum(g_source)
+    #print np.max(g_source)
+    #pl.figure()
+    #pl.contourf(g_source)
+    #pl.colorbar()
+    g_source = p2p.cosccd2mag(g_source)
+    g_source = p2p.mag2sdssccd(g_source)
+    #print np.max(g_source*13*13*52.0)
+    #pl.figure()
+    #pl.contourf(g_source*13*13*52.0)
+    #pl.colorbar()
     #----------------------------------------------------------------------
     xc1 = 0.0       #x coordinate of the center of lens (in units of Einstein radius).
     xc2 = 0.0       #y coordinate of the center of lens (in units of Einstein radius).
@@ -230,21 +233,33 @@ def single_run_test(ind,ysc1,ysc2,q,vd,pha,zl,zs):
     yi2 = xi2-ai2
 
     g_limage = lv4.call_ray_tracing(g_source,yi1,yi2,ysc1,ysc2,dsi)
-    g_limage = mag_to_flux(g_limage,zeropoint)
+    g_limage[g_limage<=0.0001] = 1e-6
+    g_limage = p2p.cosccd2mag(g_limage)
+    g_limage = p2p.mag2sdssccd(g_limage)
 
-    #pl.figure()
-    #pl.contourf(xi1,xi2,g_limage)
-    #pl.colorbar()
     #-------------------------------------------------------------
     # Need to be Caliborate the mags
     dA = Planck13.comoving_distance(zl).value*1000./(1+zl)
     Re = dA*np.sin(R*np.pi/180./3600.)
-    counts  =Brightness(R,vd)
-    vpar = np.asarray([counts,Re,xc1,xc2,q,pha])
+    counts  =Brightness(Re,vd)
+    vpar = np.asarray([counts,R,xc1,xc2,q,pha])
     #g_lens = deVaucouleurs(xi1,xi2,xc1,xc2,counts,R,1.0-q,pha)
     g_lens = de_vaucouleurs_2d(xi1,xi2,vpar)
 
-    g_lens = ncounts_to_flux(g_lens*1.5e-4,zeropoint)
+    #pl.figure()
+    #pl.contourf(xi1,xi2,g_lens)
+    #pl.colorbar()
+
+    #g_lens = p2p.pixsdss2mag(g_lens)
+    #pl.figure()
+    #pl.contourf(xi1,xi2,g_lens)
+    #pl.colorbar()
+
+    g_clean_ccd = g_lens+g_limage
+
+    pl.figure()
+    pl.contourf(g_lens)
+    pl.colorbar()
     #-------------------------------------------------------------
     file_psf = "../PSF_and_noise/sdsspsf.fits"
     g_psf = pyfits.getdata(file_psf)-1000.0
@@ -253,30 +268,22 @@ def single_run_test(ind,ysc1,ysc2,q,vd,pha,zl,zs):
     new_shape[0]=np.shape(g_psf)[0]*dsx_sdss/dsx
     new_shape[1]=np.shape(g_psf)[1]*dsx_sdss/dsx
     g_psf = rebin_psf(g_psf,new_shape)
-    print(np.max(g_psf))
-    g_limage = ss.fftconvolve(g_limage+g_lens,g_psf,mode="same")
+    g_images_psf = ss.fftconvolve(g_clean_ccd,g_psf,mode="same")
 
     #pl.figure()
-    #pl.contourf(xi1,xi2,g_limage)
+    #pl.contourf(xi1,xi2,g_lens)
     #pl.colorbar()
     #-------------------------------------------------------------
     # Need to be Caliborate the mags
     g_noise = noise_map(nnn,nnn,nstd,"Gaussian")
-    g_noise = ncounts_to_flux(g_noise*1e-0+skycount,zeropoint)
-    g_limage = g_limage+g_noise
+    g_final = g_images_psf+g_noise
 
-    print np.shape(g_limage)
-    g_limage = congrid.congrid(g_limage,[128,128])
-    g_limage = g_limage-np.min(g_limage)
+    g_final_rebin = congrid.congrid(g_final,[128,128])
 
-    pl.figure()
-    #pl.contourf(xi1,xi2,g_limage)
-    pl.contourf(g_limage)
-    pl.colorbar()
     #-------------------------------------------------------------
 
     output_filename = "../output_fits/"+str(ind)+".fits"
-    pyfits.writeto(output_filename,g_limage,clobber=True)
+    pyfits.writeto(output_filename,g_final_rebin,clobber=True)
 
     pl.show()
 
@@ -302,13 +309,13 @@ if __name__ == '__main__':
     #zl = 0.2
     #zs = 1.0
 
-    ysc1 = [-1.0]
-    ysc2 = [0.0]
-    zl = 0.2     #zl is the redshift of the lens galaxy.
+    ysc1 = [0.2]
+    ysc2 = [0.5]
+    zl = 0.298     #zl is the redshift of the lens galaxy.
     zs = 1.0
-    vd = [520]    #Velocity Dispersion.
-    q  = [0.5999999999999]
-    pha = [0.0]
+    vd = [200]    #Velocity Dispersion.
+    q  = [0.5]
+    pha = [45.0]
 
 
     #for i in xrange(rank,num_imgs,size):

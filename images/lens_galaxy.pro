@@ -3,11 +3,11 @@
 ;    lens_galaxy
 ;
 ; PURPOSE:
-;    Simulate SDSS-like lens image simply using 
+;    Simulate SDSS-like lens image simply using
 ;    de Vaucouleure profile given effective radius
-;    in arcseconds, velocity dispersion, redshift of 
+;    in arcseconds, velocity dispersion, redshift of
 ;    the lens, image size in unit of pixels by pixels,
-;    ellipticity of the galaxy and orientation of 
+;    ellipticity of the galaxy and orientation of
 ;    the galaxy. You could also add noise to the image
 ;    , either Gaussian or Poisson wtih the variance of
 ;    the noise.
@@ -18,7 +18,7 @@
 ;
 ; OPTIONAL KEYWORD PARAMETERS:
 ;    R_eff         - Effective radius of the lens galaxy
-;    zlens         - The redshift of the lens galaxy 
+;    zlens         - The redshift of the lens galaxy
 ;    VelDis        - Velocity dispersion of the halo hosting the lens galaxy
 ;    Npix          - The size of the postage stamp image
 ;    E             - Ellipticity of the lens galaxy
@@ -35,7 +35,7 @@
 ;    *imdisp         -If you do not want to use this procedure, please comment this line.
 ;
 ; HISTORY
-;    Written by Wentao Luo, Feb. 1st 2016 from 
+;    Written by Wentao Luo, Feb. 1st 2016 from
 ;    python version 'lens_galaxy.py'
 ;---------------------------------------------------
 ;
@@ -48,9 +48,9 @@ FUNCTION brightness,Re,Vd
 	c       =-8.778
         ; These parameters are from Bernardi et al 2003
 	mag_e   =(ALOG10(Re)-a*ALOG10(Vd)-c)/b+20.09
-	nanoMgy =Mgy2nanoMgy*10.0^(-(mag_e-22.5)/2.5) 
-	counts  =nanoMgy/nMgyCount_r   
-	
+	nanoMgy =Mgy2nanoMgy*10.0^(-(mag_e-22.5)/2.5)
+	counts  =nanoMgy/nMgyCount_r
+
 	RETURN,counts
 END
 ;-------------------
@@ -66,14 +66,14 @@ FUNCTION deVaucouleurs,Re,R_eff,Vd,e,phi,Npix
 	pixsize =0.396
 
 	xx      =x-xc
-        yy      =y-yc
+    yy      =y-yc
 	theta   =phi*pi/180.
 	Rpix    =R_eff/pixsize
 	rx      =xx*COS(theta)+yy*SIN(theta)
 	ry      =-xx*SIN(theta)+yy*COS(theta)
 	rr      =SQRT(rx*rx/(1.0-e)+ry*ry*(1.0-e))
 	image   =count*EXP(-7.669*((rr/Rpix)^0.25-1.0))
-	
+
 	soften  =count*EXP(-7.669*((0.2)^0.25-1.0))
 	ind     =WHERE(image ge soften)
 	image[ind]=soften
@@ -84,16 +84,16 @@ END
 
 
 PRO lens_galaxy, R_eff    =R_eff,      $
-	         zlens    =zlens,      $
-		 VelDis   =VelDis,     $
-		 Npix     =Npix,       $
- 		 E        =E,          $
-	         Phi      =phi,        $
-		 NoiseVar =NoiseVar,   $
-		 NoiseType=NoiseType
+				 zlens    =zlens,      $
+				 VelDis   =VelDis,     $
+				 Npix     =Npix,       $
+				 E        =E,          $
+				 Phi      =phi,        $
+				 NoiseVar =NoiseVar,   $
+				 NoiseType=NoiseType
 
-IF NOT KEYWORD_SET(R_eff)     THEN R_eff    =3.0  
-IF NOT KEYWORD_SET(zlens)     THEN zlens    =0.3 
+IF NOT KEYWORD_SET(R_eff)     THEN R_eff    =3.0
+IF NOT KEYWORD_SET(zlens)     THEN zlens    =0.3
 IF NOT KEYWORD_SET(VelDis)    THEN VelDis   =200.0
 IF NOT KEYWORD_SET(Npix)      THEN Npix     =128
 IF NOT KEYWORD_SET(E)         THEN E        =0.0
@@ -102,7 +102,7 @@ IF NOT KEYWORD_SET(NoiseVar)  THEN NoiseVar =58.0
 IF NOT KEYWORD_SET(NoiseType) THEN NoiseType='Gaussian'
 
 COMMON share,Mgy2nanoMgy,nMgyCount_r,pi
-;-- Cosmological and Observational(SDSS) Parameters 
+;-- Cosmological and Observational(SDSS) Parameters
 pi         =3.14159265
 H0         =69.6    ; The Hubble constant at z=0 from Plank cosmology
 Omeg_m     =0.286

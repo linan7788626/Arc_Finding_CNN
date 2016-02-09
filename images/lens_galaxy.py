@@ -90,10 +90,6 @@ Re      =dA*np.sin(R*np.pi/180./3600.)
 print Re
 imgal   =deVaucouleurs(R,Re,Vd,e,phi,Npix)
 
-plt.figure()
-plt.contourf(imgal)
-plt.colorbar()
-
 skycount=sky_r/(nMgyCount_r)
 if o.NoiseType=='Poisson':
         print '## Hey! You choose Poisson noise. Which is not good for now.'
