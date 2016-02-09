@@ -44,7 +44,13 @@ nMgyCount_r=0.004760406   # nanomaggies per count for SDSS detector.
 sky_r      =5.98          # SDSS typical r band sky
 softbias   =1000.0        # SDSS softbias
 Mgy2nanoMgy=10e+9         # nanoMaggy to Maggy
+aa_r = -24.149
+kk = 0.156347
 skycount=sky_r/(nMgyCount_r)
+expsdss = 53.9
+gain = 4.7
+airmass = 1.201824
+factor = 10.0**(0.4*(aa_r+kk*airmass))
 
 
 def noise_map(nx1,nx2,nstd,NoiseType):
@@ -150,11 +156,8 @@ def Brightness(Re,Vd):
     c       =-8.778
     mag_e   =((np.log10(Re)-a*np.log10(Vd)-c)/b)+20.09 # Bernardi et al 2003
 
-    nanoMgy =Mgy2nanoMgy*10.0**(-(mag_e-22.5)/2.5)
-    counts  =nanoMgy/nMgyCount_r
+    counts = 10.0**(-((mag_e-22.5)/2.5))*expsdss/factor/gain
 
-    print "counts",counts
-    print "Re",Re
     return counts
 
 def de_vaucouleurs_2d(x,y,par):
@@ -193,7 +196,7 @@ def single_run_test(ind,ysc1,ysc2,q,vd,pha,zl,zs):
     #zs = 1.0
     #vd = 520    #Velocity Dispersion.
     nnn = 512      #Image dimension
-    bsz = 30.0 # arcsecs
+    bsz = 10.0 # arcsecs
     dsx = bsz/nnn         # pixel size of SDSS detector.
     nstd = 59 #^2
 
@@ -212,11 +215,11 @@ def single_run_test(ind,ysc1,ysc2,q,vd,pha,zl,zs):
     #pl.figure()
     #pl.contourf(g_source)
     #pl.colorbar()
-    g_source = p2p.cosccd2mag(g_source)
-    g_source = p2p.mag2sdssccd(g_source)
+    #g_source = p2p.cosccd2mag(g_source)
+    #g_source = p2p.mag2sdssccd(g_source)
     #print np.max(g_source*13*13*52.0)
     #pl.figure()
-    #pl.contourf(g_source*13*13*52.0)
+    #pl.contourf(g_source)
     #pl.colorbar()
     #----------------------------------------------------------------------
     xc1 = 0.0       #x coordinate of the center of lens (in units of Einstein radius).
@@ -237,6 +240,10 @@ def single_run_test(ind,ysc1,ysc2,q,vd,pha,zl,zs):
     g_limage = p2p.cosccd2mag(g_limage)
     g_limage = p2p.mag2sdssccd(g_limage)
 
+    pl.figure()
+    pl.contourf(g_limage)
+    pl.colorbar()
+
     #-------------------------------------------------------------
     # Need to be Caliborate the mags
     dA = Planck13.comoving_distance(zl).value*1000./(1+zl)
@@ -246,9 +253,9 @@ def single_run_test(ind,ysc1,ysc2,q,vd,pha,zl,zs):
     #g_lens = deVaucouleurs(xi1,xi2,xc1,xc2,counts,R,1.0-q,pha)
     g_lens = de_vaucouleurs_2d(xi1,xi2,vpar)
 
-    #pl.figure()
-    #pl.contourf(xi1,xi2,g_lens)
-    #pl.colorbar()
+    pl.figure()
+    pl.contourf(xi1,xi2,g_lens)
+    pl.colorbar()
 
     #g_lens = p2p.pixsdss2mag(g_lens)
     #pl.figure()
@@ -309,11 +316,11 @@ if __name__ == '__main__':
     #zl = 0.2
     #zs = 1.0
 
-    ysc1 = [0.2]
-    ysc2 = [0.5]
+    ysc1 = [0.1]
+    ysc2 = [0.2]
     zl = 0.298     #zl is the redshift of the lens galaxy.
     zs = 1.0
-    vd = [200]    #Velocity Dispersion.
+    vd = [320]    #Velocity Dispersion.
     q  = [0.5]
     pha = [45.0]
 
