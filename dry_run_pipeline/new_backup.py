@@ -9,6 +9,7 @@ import pylab as pl
 import scipy.interpolate as sci
 import pixcos2pixsdss as p2p
 import congrid
+import matplotlib.cm as cm
 
 def rebin_psf(input_psf,new_shape):
     nxo,nyo = np.shape(input_psf)
@@ -55,9 +56,9 @@ factor = 10.0**(0.4*(aa_r+kk*airmass))
 
 def noise_map(nx1,nx2,nstd,NoiseType):
     if NoiseType=='Poisson':
-    	noise=np.random.poisson(nstd,(nx1,nx2))-nstd
+        noise=np.random.poisson(nstd,(nx1,nx2))-nstd
     if NoiseType=='Gaussian':
-    	noise=nstd*np.random.normal(0.0,1.0,(nx1,nx2))
+        noise=nstd*np.random.normal(0.0,1.0,(nx1,nx2))
     return noise
 #--------------------------------------------------------------------
 def make_r_coor(nc,dsx):
@@ -155,8 +156,8 @@ def Brightness(Re,Vd):
     b       =0.2
     c       =-8.778
     mag_e   =((np.log10(Re)-a*np.log10(Vd)-c)/b)+20.09 # Bernardi et al 2003
-
-    counts = 10.0**(-((mag_e-22.5)/2.5))*expsdss/factor/gain
+    nanoMgy =Mgy2nanoMgy*10.0**(-(mag_e-22.5)/2.5)
+    counts  =nanoMgy/nMgyCount_r
 
     return counts
 
@@ -168,7 +169,7 @@ def de_vaucouleurs_2d(x,y,par):
     res0 = np.sqrt((xnew**2)*par[4]+(ynew**2)/par[4])/par[1]
     #res = par[0]*np.exp(-par[1]*res0**0.25)
     res = par[0]*np.exp(-7.669*(res0**0.25-1.0))
-    soften  =par[0]*np.exp(-7.669*((0.4)**0.25-1.0))
+    soften  =par[0]*np.exp(-7.669*((0.2)**0.25-1.0))
     res[res>soften]=soften
     return res
 
@@ -195,8 +196,8 @@ def single_run_test(ind,ysc1,ysc2,q,vd,pha,zl,zs):
     #zl = 0.2     #zl is the redshift of the lens galaxy.
     #zs = 1.0
     #vd = 520    #Velocity Dispersion.
-    nnn = 512      #Image dimension
-    bsz = 10.0 # arcsecs
+    nnn = 128      #Image dimension
+    bsz = dsx_sdss*nnn # arcsecs
     dsx = bsz/nnn         # pixel size of SDSS detector.
     nstd = 59 #^2
 
@@ -208,7 +209,7 @@ def single_run_test(ind,ysc1,ysc2,q,vd,pha,zl,zs):
     #ysc2 = 0.5
     dsi = 0.03
     g_source = pyfits.getdata("./439.0_149.482739_1.889989_processed.fits")
-    g_source = np.array(g_source,dtype="<d")
+    g_source = np.array(g_source,dtype="<d")*10.0
     g_source[g_source<=0.0001] = 1e-6
     #print np.sum(g_source)
     #print np.max(g_source)
@@ -216,8 +217,8 @@ def single_run_test(ind,ysc1,ysc2,q,vd,pha,zl,zs):
     #pl.contourf(g_source)
     #pl.colorbar()
     #g_source = p2p.cosccd2mag(g_source)
-    #g_source = p2p.mag2sdssccd(g_source)
-    #print np.max(g_source*13*13*52.0)
+    ##g_source = p2p.mag2sdssccd(g_source)
+    ##print np.max(g_source*13*13*52.0)
     #pl.figure()
     #pl.contourf(g_source)
     #pl.colorbar()
@@ -240,9 +241,9 @@ def single_run_test(ind,ysc1,ysc2,q,vd,pha,zl,zs):
     g_limage = p2p.cosccd2mag(g_limage)
     g_limage = p2p.mag2sdssccd(g_limage)
 
-    pl.figure()
-    pl.contourf(g_limage)
-    pl.colorbar()
+    #pl.figure()
+    #pl.imshow((g_limage),interpolation='lanczos',cmap=cm.gray)
+    #pl.colorbar()
 
     #-------------------------------------------------------------
     # Need to be Caliborate the mags
@@ -253,39 +254,51 @@ def single_run_test(ind,ysc1,ysc2,q,vd,pha,zl,zs):
     #g_lens = deVaucouleurs(xi1,xi2,xc1,xc2,counts,R,1.0-q,pha)
     g_lens = de_vaucouleurs_2d(xi1,xi2,vpar)
 
-    pl.figure()
-    pl.contourf(xi1,xi2,g_lens)
-    pl.colorbar()
-
-    #g_lens = p2p.pixsdss2mag(g_lens)
     #pl.figure()
-    #pl.contourf(xi1,xi2,g_lens)
+    #pl.imshow((g_lens),interpolation='nearest',cmap=cm.gray)
     #pl.colorbar()
 
     g_clean_ccd = g_lens+g_limage
 
     pl.figure()
-    pl.contourf(g_lens)
+    pl.imshow((g_clean_ccd),interpolation='nearest',cmap=cm.gray)
     pl.colorbar()
+
+    g_clean_ccd = congrid.congrid(g_clean_ccd,[128,128])
+
     #-------------------------------------------------------------
     file_psf = "../PSF_and_noise/sdsspsf.fits"
     g_psf = pyfits.getdata(file_psf)-1000.0
     g_psf = g_psf/np.sum(g_psf)
-    new_shape=[0,0]
-    new_shape[0]=np.shape(g_psf)[0]*dsx_sdss/dsx
-    new_shape[1]=np.shape(g_psf)[1]*dsx_sdss/dsx
-    g_psf = rebin_psf(g_psf,new_shape)
-    g_images_psf = ss.fftconvolve(g_clean_ccd,g_psf,mode="same")
 
-    #pl.figure()
-    #pl.contourf(xi1,xi2,g_lens)
-    #pl.colorbar()
+    #new_shape=[0,0]
+    #new_shape[0]=np.shape(g_psf)[0]*dsx_sdss/dsx
+    #new_shape[1]=np.shape(g_psf)[1]*dsx_sdss/dsx
+    #g_psf = rebin_psf(g_psf,new_shape)
+
+    g_images_psf = ss.fftconvolve(g_clean_ccd,g_psf,mode="same")
+    #g_images_psf = ss.convolve(g_clean_ccd,g_psf,mode="same")
+    #g_images_psf = g_clean_ccd
+
+    pl.figure()
+    pl.imshow((g_psf),interpolation='nearest',cmap=cm.gray)
+    pl.colorbar()
+
     #-------------------------------------------------------------
     # Need to be Caliborate the mags
-    g_noise = noise_map(nnn,nnn,nstd,"Gaussian")
+    #g_noise = noise_map(nnn,nnn,np.sqrt(nstd),"Gaussian")
+    g_noise = noise_map(128,128,np.sqrt(nstd),"Gaussian")
     g_final = g_images_psf+g_noise
 
+    pl.figure()
+    pl.imshow((g_final.T),interpolation='nearest',cmap=cm.gray)
+    pl.colorbar()
+
     g_final_rebin = congrid.congrid(g_final,[128,128])
+
+    pl.figure()
+    pl.imshow((g_final_rebin.T),interpolation='nearest',cmap=cm.gray)
+    pl.colorbar()
 
     #-------------------------------------------------------------
 
@@ -317,12 +330,12 @@ if __name__ == '__main__':
     #zs = 1.0
 
     ysc1 = [0.1]
-    ysc2 = [0.2]
+    ysc2 = [-0.2]
     zl = 0.298     #zl is the redshift of the lens galaxy.
     zs = 1.0
-    vd = [320]    #Velocity Dispersion.
+    vd = [500]    #Velocity Dispersion.
     q  = [0.5]
-    pha = [45.0]
+    pha = [-45.0]
 
 
     #for i in xrange(rank,num_imgs,size):
