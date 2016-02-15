@@ -260,9 +260,9 @@ def single_run_test(ind,ysc1,ysc2,q,vd,pha,zl,zs):
 
     g_clean_ccd = g_lens+g_limage
 
-    pl.figure()
-    pl.imshow((g_clean_ccd),interpolation='nearest',cmap=cm.gray)
-    pl.colorbar()
+    #pl.figure()
+    #pl.imshow((g_clean_ccd),interpolation='nearest',cmap=cm.gray)
+    #pl.colorbar()
 
     g_clean_ccd = congrid.congrid(g_clean_ccd,[128,128])
 
@@ -280,9 +280,9 @@ def single_run_test(ind,ysc1,ysc2,q,vd,pha,zl,zs):
     #g_images_psf = ss.convolve(g_clean_ccd,g_psf,mode="same")
     #g_images_psf = g_clean_ccd
 
-    pl.figure()
-    pl.imshow((g_psf),interpolation='nearest',cmap=cm.gray)
-    pl.colorbar()
+    #pl.figure()
+    #pl.imshow((g_psf),interpolation='nearest',cmap=cm.gray)
+    #pl.colorbar()
 
     #-------------------------------------------------------------
     # Need to be Caliborate the mags
@@ -290,15 +290,15 @@ def single_run_test(ind,ysc1,ysc2,q,vd,pha,zl,zs):
     g_noise = noise_map(128,128,np.sqrt(nstd),"Gaussian")
     g_final = g_images_psf+g_noise
 
-    pl.figure()
-    pl.imshow((g_final.T),interpolation='nearest',cmap=cm.gray)
-    pl.colorbar()
+    #pl.figure()
+    #pl.imshow((g_final.T),interpolation='nearest',cmap=cm.gray)
+    #pl.colorbar()
 
     g_final_rebin = congrid.congrid(g_final,[128,128])
 
-    pl.figure()
-    pl.imshow((g_final_rebin.T),interpolation='nearest',cmap=cm.gray)
-    pl.colorbar()
+    #pl.figure()
+    #pl.imshow((g_final_rebin.T),interpolation='nearest',cmap=cm.gray)
+    #pl.colorbar()
 
     #-------------------------------------------------------------
 
