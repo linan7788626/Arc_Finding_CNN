@@ -15,13 +15,16 @@ zp_lsstABmag =24.000  # Lsst zero point in AB mag
 nvisit_lsst  =180.0   # Number of visit for the same area
 expt_lsst    =30.0    # Exposure time of each visit
 gaini_lsst   =2.0     # Temporarily to set 2.0???????? need to be further confirmed
+Alsst        =319.0/9.6
 
 zp_desABmag =24.000  # DES zero point in AB mag
 nvisit_des  =10.0    # Number of visit for the same area
-expt_des    =30.0    # Exposure time of each visit
+expt_des    =90.0    # Exposure time of each visit
 gaini_dex   =2.0     # Temporarily to set 2.0???????? need to be further confirmed
+Ades        =319.0/9.6
 
-def photon2ABmag(dlambda,lam_f814w,image):
+#def photon2ABmag(dlambda,lam_f814w,image):
+def photon2ABmag(image):
 	idx       =np.where(image<=0.0)
 	image[idx]=1e-7
 	image_Jy  =image/1.51e+7/(dlambda/lam_f814w)
@@ -32,13 +35,22 @@ def photon2ABmag(dlambda,lam_f814w,image):
 	
 def ABmag2lsstccd(image_AB):	
 	exptime   =expt_lsst*nvisit_lsst
-	image_lsst=image_AB	
+	s0        =Alsst*1.681
+	image_lsst=s0*10.0**(-0.4*(image_AB-zp_lsstABmag))*exptime
+	#assuming gain lsst =1
 	return image_lsst
 
 def ABmag2desccd(image_AB):	
 	exptime   =expt_des*nvisit_des
-	image_des=image_AB	
+	s0        =Ades*1.681
+	image_des =s0*10.0**(-0.4*(image_AB-zp_desABmag))*exptime
 	return image_des
+
+def ABmag2sdssccd(image_AB):	
+	exptime   =54
+	s0        =Ades*1.681
+	image_sdss=s0*10.0**(-0.4*(image_AB-zp_desABmag))*exptime
+	return image_sdss
 
 
 	
