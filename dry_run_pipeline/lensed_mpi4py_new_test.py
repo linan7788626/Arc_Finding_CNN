@@ -276,7 +276,7 @@ if __name__ == '__main__':
     #sourcpos = 10.0 # arcsecs
     #num_imgs = int(sys.argv[1])
     num_imgs = 100
-    sourcpos = 0.8
+    sourcpos = 2.0
 
     comm = MPI.COMM_WORLD
     size = comm.Get_size()
